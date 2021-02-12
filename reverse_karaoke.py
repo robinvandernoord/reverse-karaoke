@@ -1,8 +1,10 @@
 from spleeter.separator import Separator  # apt install ffmpeg
-from pytube import YouTube
+# from pytube import YouTube
+import youtube_dl
 import sys
 from icecream import ic
 import moviepy.editor
+import shutil
 
 
 # step 1: download mp4
@@ -16,26 +18,32 @@ import moviepy.editor
 def split(in_path):
     print('### Splitting mp3')
     separator = Separator('spleeter:2stems')
-    separator.separate_to_file(in_path, './output')
+    separator.separate_to_file(in_path, './')
 
+
+# def download_mp4_pytube(url):
+#     print('### Downloading mp4 - pytube')
+#     ic(url)
+#     yt = YouTube(url)
+#     stream = yt.streams.filter(
+#         file_extension='mp4',
+#         res='720p',
+#         audio_codec='mp4a.40.2',
+#     ).first()
+#     stream.download('./temp')
+#     ic(stream)
+#     return f'./temp/{stream.default_filename}'
 
 def download_mp4(url):
-    print('### Downloading mp4')
+    print('### Downloading mp4 - youtube_dl')
     ic(url)
-    yt = YouTube(url)
-    stream = yt.streams
-
-    ic(stream)
-    exit()
-
-    stream = yt.streams.filter(
-        file_extension='mp4',
-        res='720p',
-        audio_codec='mp4a.40.2',
-    ).first()
-    stream.download('./temp')
-    ic(stream)
-    return f'./temp/{stream.default_filename}'
+    ydl_opts = {
+        'outtmpl': './temp/out.mp4',  # ./temp/out.mp4
+        # 'format': '136'  # 720p mp4
+        'format': '22/18'  # 720p mp4 with audio, 360p if 720p not available
+    }
+    with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+        ydl.download([url])
 
 
 def extract_mp3(path):
@@ -47,11 +55,25 @@ def extract_mp3(path):
     vid.audio.write_audiofile(newpath)
     return newpath
 
+def rejoin(vid_path, aud_path):
+    print('### Merging vocals and video')
+    ic(vid_path, aud_path)
+    vid = moviepy.editor.VideoFileClip(vid_path)
+    aud = moviepy.editor.AudioFileClip(aud_path)
+    ic(vid, aud)
+    vid.audio = aud
+
+    vid.write_videofile("final.mp4")
+
+def cleanup():
+    print('### Cleaning up')
+    shutil.rmtree('./out')
+    shutil.rmtree('./temp')
 
 if __name__ == '__main__':
-    path = download_mp4(*sys.argv[1:])
-    path = './temp/Wally Mckey Ga Niet Weg.mp4'
-    path = extract_mp3(path)
-    ic(path)
-    # split(*sys.argv[1:])
-    # https://www.youtube.com/watch?v=N_gWEoCg5o4
+    download_mp4(*sys.argv[1:])
+    extract_mp3('./temp/out.mp4')
+    split('./temp/out.mp3')
+    rejoin('./temp/out.mp4', 'out/vocals.wav')
+    cleanup()
+    print('### DONE ###')

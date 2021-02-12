@@ -1,0 +1,6 @@
+.idea/*
+*.mp4
+*.mp3
+*_models/
+out/
+temp/

@@ -1,10 +1,10 @@
-from spleeter.separator import Separator  # apt install ffmpeg
-# from pytube import YouTube
-import youtube_dl
 import sys
 from icecream import ic
 import moviepy.editor
-import shutil
+
+MP4_PATH = './temp/out.mp4'
+MP3_PATH = './temp/out.mp3'
+VOCALS = 'out/vocals.mp3'
 
 
 # step 1: download mp4
@@ -16,9 +16,10 @@ import shutil
 # async/threads?
 
 def split(in_path):
+    from spleeter.separator import Separator  # apt install ffmpeg
     print('### Splitting mp3')
     separator = Separator('spleeter:2stems')
-    separator.separate_to_file(in_path, './')
+    separator.separate_to_file(in_path, './', codec='mp3')
 
 
 # def download_mp4_pytube(url):
@@ -35,6 +36,7 @@ def split(in_path):
 #     return f'./temp/{stream.default_filename}'
 
 def download_mp4(url):
+    import youtube_dl
     print('### Downloading mp4 - youtube_dl')
     ic(url)
     ydl_opts = {
@@ -55,6 +57,7 @@ def extract_mp3(path):
     vid.audio.write_audiofile(newpath)
     return newpath
 
+
 def rejoin(vid_path, aud_path):
     print('### Merging vocals and video')
     ic(vid_path, aud_path)
@@ -65,15 +68,22 @@ def rejoin(vid_path, aud_path):
 
     vid.write_videofile("final.mp4")
 
+
 def cleanup():
+    import shutil
     print('### Cleaning up')
     shutil.rmtree('./out')
     shutil.rmtree('./temp')
 
-if __name__ == '__main__':
+
+def main():
     download_mp4(*sys.argv[1:])
-    extract_mp3('./temp/out.mp4')
-    split('./temp/out.mp3')
-    rejoin('./temp/out.mp4', 'out/vocals.wav')
+    extract_mp3(MP4_PATH)
+    split(MP3_PATH)
+    rejoin(MP4_PATH, VOCALS)
     cleanup()
     print('### DONE ###')
+
+
+if __name__ == '__main__':
+    main()
